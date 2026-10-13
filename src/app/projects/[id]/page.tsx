@@ -1,8 +1,9 @@
-import { getProjectById } from '@/services/project.service'
+﻿import { getProjectById } from '@/services/project.service'
 import { getCurrentUser } from '@/lib/auth'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Navbar } from '@/components/layout/Navbar'
 import { Badge } from '@/components/ui/Badge'
+import { ProjectGrantSection } from '@/components/projects/ProjectGrantSection'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -10,13 +11,12 @@ import {
   Users,
   Banknote,
   Calendar,
-  CheckCircle2,
-  Clock,
   BookOpen,
   FileKey,
   Database,
   Building2,
-  FlaskConical
+  FlaskConical,
+  Award
 } from 'lucide-react'
 
 export default async function ProjectDetailPage({
@@ -93,51 +93,26 @@ export default async function ProjectDetailPage({
             </div>
           </div>
 
+          {/* National Grant Lifecycle & Budget Tracker Section */}
+          <ProjectGrantSection
+            projectId={project.id}
+            status={project.projectStatus}
+            proposalDate={project.topDate}
+            startDate={project.startDate}
+            endDate={project.endDate}
+            budget={project.budget}
+            grantNumber={project.grantNumber}
+            fundingAgencyName={project.fundingAgency?.name}
+            initialMilestones={project.milestones}
+          />
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Milestones & Progress */}
+            {/* Research Outputs: Publications, Patents, Datasets */}
             <div className="lg:col-span-2 space-y-6">
               <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
                 <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-blue-600" />
-                  Project Milestones ({project.milestones.length})
-                </h2>
-
-                {project.milestones.length === 0 ? (
-                  <p className="text-xs text-slate-500 italic">No milestones currently defined.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {project.milestones.map((m) => (
-                      <div key={m.id} className="border border-slate-200 rounded-lg p-4 flex items-start justify-between gap-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            {m.status === 'Completed' ? (
-                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                            ) : (
-                              <Clock className="w-4 h-4 text-amber-500" />
-                            )}
-                            <h3 className="font-semibold text-slate-900 text-sm">{m.title}</h3>
-                          </div>
-                          {m.description && <p className="text-xs text-slate-500">{m.description}</p>}
-                          {m.lab && (
-                            <p className="text-[11px] text-blue-600 font-medium">
-                              Lab Facility: {m.lab.name}
-                            </p>
-                          )}
-                        </div>
-                        <Badge variant={m.status === 'Completed' ? 'success' : 'warning'}>
-                          {m.status}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Research Outputs */}
-              <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <BookOpen className="w-5 h-5 text-blue-600" />
-                  Publications, Patents & Datasets
+                  Publications, Patents & Datasets ({project.publications.length + project.patents.length + project.datasets.length})
                 </h2>
 
                 {project.publications.length > 0 && (
@@ -160,7 +135,21 @@ export default async function ProjectDetailPage({
                     {project.patents.map((pat) => (
                       <div key={pat.id} className="p-3 bg-purple-50/50 rounded-md border border-purple-200 text-purple-950">
                         <p className="text-xs font-semibold">{pat.title}</p>
-                        <p className="text-[11px] text-purple-700 mt-0.5">Grant Date: {pat.grantDate ? new Date(pat.grantDate).toLocaleDateString() : 'Pending'}</p>
+                        <p className="text-[11px] text-purple-700 mt-0.5">
+                          Grant Date: {pat.grantDate ? new Date(pat.grantDate).toLocaleDateString() : 'Pending'} · DOI: {pat.doi || 'N/A'}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {project.datasets.length > 0 && (
+                  <div className="space-y-2 pt-2">
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Research Datasets</h3>
+                    {project.datasets.map((ds) => (
+                      <div key={ds.id} className="p-3 bg-emerald-50/40 rounded-md border border-emerald-200">
+                        <p className="text-xs font-semibold text-emerald-950">{ds.title}</p>
+                        <p className="text-[11px] text-emerald-700 mt-0.5 font-mono">{ds.location}</p>
                       </div>
                     ))}
                   </div>
@@ -191,6 +180,40 @@ export default async function ProjectDetailPage({
                       <Badge variant="outline">{m.researcher.role}</Badge>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Domains and Skills */}
+              <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Award className="w-5 h-5 text-amber-500" />
+                  Research Focus & Technologies
+                </h2>
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                      Domains
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {project.domains.map((d) => (
+                        <span key={d.domain.id} className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-md">
+                          {d.domain.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                      Skills & Stacks
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {project.skills.map((s) => (
+                        <span key={s.skill.id} className="px-2 py-0.5 bg-slate-100 text-slate-700 text-xs rounded-md">
+                          {s.skill.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

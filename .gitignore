@@ -31,3 +31,6 @@ Thumbs.db
 .idea/
 .agents/
 .temp_ag_kit/
+
+*.tsbuildinfo
+next-env.d.ts
