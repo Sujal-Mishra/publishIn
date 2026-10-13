@@ -1,0 +1,364 @@
+// Prisma Schema for ResearchHub
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model University {
+  id              String               @id @default(uuid())
+  universityName  String
+  abbreviation    String
+  establishedYear Int
+  type            String               // e.g. "Public", "Private"
+  website         String?
+  phone           String?
+  email           String?
+  ranking         Int?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  locations       UniversityLocation[]
+  departments     Department[]
+  laboratories    Laboratory[]
+
+  @@index([universityName])
+  @@index([abbreviation])
+}
+
+model UniversityLocation {
+  id           String     @id @default(uuid())
+  universityId String
+  location     String
+
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@index([universityId])
+}
+
+model Department {
+  id             String            @id @default(uuid())
+  departmentName String
+  hod            String?           // Head of Department name
+  office         String?
+  universityId   String
+
+  university     University        @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  researchers    Researcher[]
+  projects       ResearchProject[]
+  laboratories   Laboratory[]
+
+  @@index([departmentName])
+  @@index([universityId])
+}
+
+model Researcher {
+  id              String            @id @default(uuid())
+  fname           String
+  minit           String?
+  lname           String
+  email           String            @unique
+  contact         String?
+  address         String?
+  gender          String?
+  dob             DateTime?
+  citizenship     String?
+  currentPosition String
+  highestDegree   String?
+  orcid           String?           @unique
+  biography       String?
+  departmentId    String
+  role            String            @default("RESEARCHER") // STUDENT, PROFESSOR, RESEARCHER, UNIVERSITY_ADMIN, FUNDING_AGENCY, INDUSTRY
+  passwordHash    String            @default("$2a$10$wE8wY01234567890abcdefuO8qK4ePq8Z6x7y8z9a0b1c2d3e4f5") // demo default password
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  department      Department        @relation(fields: [departmentId], references: [id])
+  studentProfile  Student?
+  professorProfile Professor?
+
+  ledProjects     ResearchProject[] @relation("LeadProfessor")
+  projectMembers  ProjectMember[]
+  skills          ResearcherSkill[]
+  domains         ResearcherDomain[]
+
+  collaborationsInitiated Collaboration[] @relation("Researcher1")
+  collaborationsReceived  Collaboration[] @relation("Researcher2")
+  advisedStudents         Student[]       @relation("AdvisorRelation")
+  industryCollaborations IndustryCollaboration[]
+
+  @@index([email])
+  @@index([orcid])
+  @@index([currentPosition])
+  @@index([departmentId])
+}
+
+model Student {
+  id           String     @id @default(uuid())
+  researcherId String     @unique
+  program      String     // e.g. "B.Tech", "M.Tech", "Ph.D"
+  yearOfStudy  Int
+  cgpa         Float?
+  advisorId    String?
+
+  researcher   Researcher @relation(fields: [researcherId], references: [id], onDelete: Cascade)
+  advisor      Researcher? @relation("AdvisorRelation", fields: [advisorId], references: [id])
+
+  @@index([advisorId])
+}
+
+model Professor {
+  id           String     @id @default(uuid())
+  researcherId String     @unique
+  designation  String     // e.g. "Assistant Professor", "Associate Professor", "Professor"
+  experience   Int        // Years of experience
+
+  researcher   Researcher @relation(fields: [researcherId], references: [id], onDelete: Cascade)
+}
+
+model ResearchProject {
+  id              String            @id @default(uuid())
+  projectTitle    String
+  grantNumber     String?           @unique
+  topDate         DateTime?         // Proposal date
+  startDate       DateTime
+  endDate         DateTime?
+  budget          Float?
+  projectStatus   String            @default("Active") // Proposed, Active, Completed, On Hold, Cancelled
+  leadProfessorId String
+  departmentId    String
+  fundingAgencyId String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  leadProfessor   Researcher        @relation("LeadProfessor", fields: [leadProfessorId], references: [id])
+  department      Department        @relation(fields: [departmentId], references: [id])
+  fundingAgency   FundingAgency?    @relation(fields: [fundingAgencyId], references: [id])
+
+  milestones      Milestone[]
+  publications    Publication[]
+  patents         Patent[]
+  datasets        Dataset[]
+  skills          ProjectSkill[]
+  domains         ProjectDomain[]
+  members         ProjectMember[]
+  industryCollaborations IndustryCollaboration[]
+
+  @@index([projectTitle])
+  @@index([projectStatus])
+  @@index([startDate])
+  @@index([leadProfessorId])
+  @@index([departmentId])
+}
+
+model ProjectMember {
+  id           String          @id @default(uuid())
+  projectId    String
+  researcherId String
+  role         String          @default("Member") // Co-Investigator, Researcher, Student Member
+  joinedAt     DateTime        @default(now())
+
+  project      ResearchProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  researcher   Researcher      @relation(fields: [researcherId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, researcherId])
+  @@index([projectId])
+  @@index([researcherId])
+}
+
+model FundingAgency {
+  id        String            @id @default(uuid())
+  name      String            @unique
+  website   String?
+  email     String?
+  createdAt DateTime          @default(now())
+
+  projects  ResearchProject[]
+
+  @@index([name])
+}
+
+model Industry {
+  id           String                  @id @default(uuid())
+  name         String                  @unique
+  industryType String                  // e.g. "Biotech", "IT", "Aerospace"
+  website      String?
+  contactEmail String?
+  phone        String?
+
+  collaborations IndustryCollaboration[]
+
+  @@index([name])
+}
+
+model IndustryCollaboration {
+  id                String           @id @default(uuid())
+  industryId        String
+  projectId         String?
+  researcherId      String?
+  collaborationType String           // e.g. "Sponsorship", "Joint R&D"
+  sinceDate         DateTime         @default(now())
+
+  industry          Industry         @relation(fields: [industryId], references: [id], onDelete: Cascade)
+  project           ResearchProject? @relation(fields: [projectId], references: [id])
+  researcher        Researcher?      @relation(fields: [researcherId], references: [id])
+
+  @@index([industryId])
+  @@index([projectId])
+  @@index([researcherId])
+}
+
+model Laboratory {
+  id           String     @id @default(uuid())
+  name         String
+  departmentId String
+  universityId String
+
+  department   Department @relation(fields: [departmentId], references: [id])
+  university   University @relation(fields: [universityId], references: [id])
+  milestones   Milestone[]
+
+  @@index([name])
+  @@index([departmentId])
+  @@index([universityId])
+}
+
+model Publication {
+  id              String          @id @default(uuid())
+  title           String
+  journalName     String?
+  publicationYear Int
+  doi             String?         @unique
+  projectId       String
+
+  project         ResearchProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([title])
+  @@index([projectId])
+}
+
+model Patent {
+  id          String          @id @default(uuid())
+  title       String
+  doi         String?         @unique
+  grantDate   DateTime?
+  projectId   String
+
+  project     ResearchProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([title])
+  @@index([doi])
+  @@index([projectId])
+}
+
+model Dataset {
+  id        String          @id @default(uuid())
+  title     String
+  name      String
+  location  String          // URL / Storage Link
+  projectId String
+
+  project   ResearchProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([name])
+  @@index([title])
+  @@index([projectId])
+}
+
+model Milestone {
+  id          String          @id @default(uuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  status      String          @default("Pending") // Pending, In Progress, Completed
+  projectId   String
+  labId       String?
+
+  project     ResearchProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  lab         Laboratory?     @relation(fields: [labId], references: [id])
+
+  @@index([projectId])
+  @@index([labId])
+}
+
+model Skill {
+  id         String            @id @default(uuid())
+  name       String            @unique
+  category   String?           // e.g. "Programming", "Lab Technique", "Data Science"
+
+  researchers ResearcherSkill[]
+  projects    ProjectSkill[]
+
+  @@index([name])
+}
+
+model ResearchDomain {
+  id          String             @id @default(uuid())
+  name        String             @unique
+  description String?
+
+  researchers ResearcherDomain[]
+  projects    ProjectDomain[]
+
+  @@index([name])
+}
+
+model ResearcherSkill {
+  researcherId String
+  skillId      String
+
+  researcher   Researcher @relation(fields: [researcherId], references: [id], onDelete: Cascade)
+  skill        Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([researcherId, skillId])
+}
+
+model ProjectSkill {
+  projectId String
+  skillId   String
+
+  project   ResearchProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  skill     Skill           @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, skillId])
+}
+
+model ResearcherDomain {
+  researcherId String
+  domainId     String
+
+  researcher   Researcher     @relation(fields: [researcherId], references: [id], onDelete: Cascade)
+  domain       ResearchDomain @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
+  @@id([researcherId, domainId])
+}
+
+model ProjectDomain {
+  projectId String
+  domainId  String
+
+  project   ResearchProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  domain    ResearchDomain  @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, domainId])
+}
+
+model Collaboration {
+  id                String     @id @default(uuid())
+  researcherId1     String
+  researcherId2     String
+  collaborationType String     // e.g. "Joint Research", "Co-Authorship", "Mentorship"
+  sinceDate         DateTime   @default(now())
+  status            String     @default("Active") // Active, Concluded
+
+  researcher1       Researcher @relation("Researcher1", fields: [researcherId1], references: [id], onDelete: Cascade)
+  researcher2       Researcher @relation("Researcher2", fields: [researcherId2], references: [id], onDelete: Cascade)
+
+  @@unique([researcherId1, researcherId2])
+  @@index([researcherId1])
+  @@index([researcherId2])
+}
