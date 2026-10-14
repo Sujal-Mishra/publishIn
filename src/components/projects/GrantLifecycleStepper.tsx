@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import React from 'react'
-import { CheckCircle2, Clock, FileText, Award, PlayCircle, AlertCircle } from 'lucide-react'
+import { CheckCircle2, Clock, FileText, Award, PlayCircle } from 'lucide-react'
 
 interface GrantLifecycleStepperProps {
   status: string
@@ -121,11 +121,14 @@ export function GrantLifecycleStepper({
         )}
       </div>
 
+      {/* Progress Track: Line runs strictly through the circular icon centers (top-8 = 32px) */}
       <div className="relative">
-        <div className="hidden md:block absolute top-1/2 left-6 right-6 -translate-y-1/2 h-0.5 bg-slate-200 z-0" />
+        {/* Background track line */}
+        <div className="hidden md:block absolute top-[32px] left-[10%] right-[10%] h-0.5 bg-slate-200 z-0" />
+        {/* Active progress track line */}
         <div
-          className="hidden md:block absolute top-1/2 left-6 -translate-y-1/2 h-0.5 bg-blue-600 z-0 transition-all duration-500"
-          style={{ width: `${(currentIndex / (STAGES.length - 1)) * 90}%` }}
+          className="hidden md:block absolute top-[32px] left-[10%] h-0.5 bg-blue-600 z-0 transition-all duration-500"
+          style={{ width: `${(currentIndex / (STAGES.length - 1)) * 80}%` }}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 relative z-10">
@@ -134,7 +137,7 @@ export function GrantLifecycleStepper({
             const isCompleted = idx < currentIndex
             const isCurrent = idx === currentIndex
 
-            let stateClasses = 'bg-slate-100 border-slate-200 text-slate-400'
+            let stateClasses = 'bg-white border-slate-300 text-slate-400'
             let ringClasses = ''
             if (isCompleted) {
               stateClasses = 'bg-emerald-600 border-emerald-600 text-white'
@@ -146,12 +149,13 @@ export function GrantLifecycleStepper({
             return (
               <div
                 key={stage.key}
-                className={`flex flex-row md:flex-col items-center md:items-center text-left md:text-center p-3 rounded-lg transition-all ${
+                className={`flex flex-row md:flex-col items-center md:items-center text-left md:text-center p-3 rounded-xl transition-all ${
                   isCurrent ? 'bg-blue-50/60 border border-blue-200' : 'bg-transparent'
                 }`}
               >
+                {/* Circular Badge: has solid background & z-10 to sit cleanly on top of the line */}
                 <div
-                  className={`w-10 h-10 rounded-full border-2 flex items-center justify-center shrink-0 mb-0 md:mb-3 mr-3 md:mr-0 transition-transform ${stateClasses} ${ringClasses}`}
+                  className={`w-10 h-10 rounded-full border-2 flex items-center justify-center shrink-0 mb-0 md:mb-3 mr-3 md:mr-0 transition-transform relative z-10 ${stateClasses} ${ringClasses}`}
                 >
                   {isCompleted ? (
                     <CheckCircle2 className="w-5 h-5 text-white" />
