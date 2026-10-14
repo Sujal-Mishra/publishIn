@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/layout/Sidebar'
 import { Navbar } from '@/components/layout/Navbar'
 import { Badge } from '@/components/ui/Badge'
 import { ProjectGrantSection } from '@/components/projects/ProjectGrantSection'
+import { ProjectPublicationsSection } from '@/components/publications/ProjectPublicationsSection'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -109,31 +110,25 @@ export default async function ProjectDetailPage({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Research Outputs: Publications, Patents, Datasets */}
             <div className="lg:col-span-2 space-y-6">
-              <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-5">
+                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
                   <BookOpen className="w-5 h-5 text-blue-600" />
                   Publications, Patents & Datasets ({project.publications.length + project.patents.length + project.datasets.length})
                 </h2>
 
-                {project.publications.length > 0 && (
-                  <div className="space-y-2">
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Publications</h3>
-                    {project.publications.map((pub) => (
-                      <div key={pub.id} className="p-3 bg-slate-50 rounded-md border border-slate-200">
-                        <p className="text-xs font-semibold text-slate-900">{pub.title}</p>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          {pub.journalName} ({pub.publicationYear}) · DOI: {pub.doi || 'N/A'}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {/* Interactive Publications with One-Click Citation & DOI Autofill */}
+                <ProjectPublicationsSection
+                  projectId={project.id}
+                  projectTitle={project.projectTitle}
+                  initialPublications={project.publications}
+                  leadAuthorName={`${project.leadProfessor.fname} ${project.leadProfessor.lname}`}
+                />
 
                 {project.patents.length > 0 && (
-                  <div className="space-y-2 pt-2">
+                  <div className="space-y-2 pt-2 border-t border-slate-100">
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Patents Granted</h3>
                     {project.patents.map((pat) => (
-                      <div key={pat.id} className="p-3 bg-purple-50/50 rounded-md border border-purple-200 text-purple-950">
+                      <div key={pat.id} className="p-3 bg-purple-50/50 rounded-lg border border-purple-200 text-purple-950">
                         <p className="text-xs font-semibold">{pat.title}</p>
                         <p className="text-[11px] text-purple-700 mt-0.5">
                           Grant Date: {pat.grantDate ? new Date(pat.grantDate).toLocaleDateString() : 'Pending'} · DOI: {pat.doi || 'N/A'}
@@ -144,10 +139,10 @@ export default async function ProjectDetailPage({
                 )}
 
                 {project.datasets.length > 0 && (
-                  <div className="space-y-2 pt-2">
+                  <div className="space-y-2 pt-2 border-t border-slate-100">
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Research Datasets</h3>
                     {project.datasets.map((ds) => (
-                      <div key={ds.id} className="p-3 bg-emerald-50/40 rounded-md border border-emerald-200">
+                      <div key={ds.id} className="p-3 bg-emerald-50/40 rounded-lg border border-emerald-200">
                         <p className="text-xs font-semibold text-emerald-950">{ds.title}</p>
                         <p className="text-[11px] text-emerald-700 mt-0.5 font-mono">{ds.location}</p>
                       </div>
