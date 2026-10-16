@@ -1,9 +1,9 @@
-﻿'use client'
+'use client'
 
 import React, { useState } from 'react'
 import { GrantLifecycleStepper } from './GrantLifecycleStepper'
 import { BudgetUtilizationChart } from './BudgetUtilizationChart'
-import { MilestoneManager, MilestoneItem } from './MilestoneManager'
+import { ProjectGanttRoadmap, MilestoneItem } from './ProjectGanttRoadmap'
 
 interface ProjectGrantSectionProps {
   projectId: string
@@ -45,9 +45,11 @@ export function ProjectGrantSection({
       {/* 2. Visual Budget Utilization & Burn-Down Chart */}
       <BudgetUtilizationChart totalBudget={budget} milestones={milestones} />
 
-      {/* 3. Interactive Milestone Management */}
-      <MilestoneManager
+      {/* 3. Interactive Research Project Gantt & Milestone Timeline Roadmap */}
+      <ProjectGanttRoadmap
         projectId={projectId}
+        startDate={startDate}
+        endDate={endDate}
         initialMilestones={initialMilestones}
         onMilestoneChange={(updated) => setMilestones(updated)}
       />

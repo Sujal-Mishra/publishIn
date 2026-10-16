@@ -1,8 +1,9 @@
-import { getUniversityById } from '@/services/university.service'
+import { getUniversityById, getInstitutionalResearchReport } from '@/services/university.service'
 import { getCurrentUser } from '@/lib/auth'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Navbar } from '@/components/layout/Navbar'
 import { Badge } from '@/components/ui/Badge'
+import { InstitutionalReportSection } from '@/components/university/InstitutionalReportSection'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { GraduationCap, MapPin, Building2, FlaskConical, Users, Globe, ExternalLink } from 'lucide-react'
@@ -14,9 +15,12 @@ export default async function UniversityDetailPage({
 }) {
   const user = await getCurrentUser()
   const resolvedParams = await params
-  const university = await getUniversityById(resolvedParams.id)
+  const [university, report] = await Promise.all([
+    getUniversityById(resolvedParams.id),
+    getInstitutionalResearchReport(resolvedParams.id)
+  ])
 
-  if (!university) {
+  if (!university || !report) {
     notFound()
   }
 
@@ -69,6 +73,9 @@ export default async function UniversityDetailPage({
               )}
             </div>
           </div>
+
+          {/* Institutional Research Performance & Accreditation Audit (NAAC/NIRF/ABET) Report */}
+          <InstitutionalReportSection report={report} />
 
           {/* Departments Grid */}
           <div className="space-y-4">

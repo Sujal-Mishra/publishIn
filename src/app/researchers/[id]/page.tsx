@@ -3,6 +3,8 @@ import { getCurrentUser } from '@/lib/auth'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Navbar } from '@/components/layout/Navbar'
 import { Badge } from '@/components/ui/Badge'
+import { CollaborationRequestModal } from '@/components/collaborations/CollaborationRequestModal'
+import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { GraduationCap, Mail, Phone, MapPin, Award, BookOpen, FolderGit2, Network } from 'lucide-react'
@@ -14,7 +16,14 @@ export default async function ResearcherDetailPage({
 }) {
   const user = await getCurrentUser()
   const resolvedParams = await params
-  const researcher = await getResearcherById(resolvedParams.id)
+  const [researcher, otherResearchers] = await Promise.all([
+    getResearcherById(resolvedParams.id),
+    prisma.researcher.findMany({
+      where: { id: { not: resolvedParams.id } },
+      take: 6,
+      select: { id: true, fname: true, lname: true, role: true }
+    })
+  ])
 
   if (!researcher) {
     notFound()
@@ -70,6 +79,27 @@ export default async function ResearcherDetailPage({
                     <span>ORCID iD: https://orcid.org/{researcher.orcid}</span>
                   </div>
                 )}
+              </div>
+
+              {/* Action Button: Request Collaboration / Mentorship */}
+              <div className="shrink-0">
+                <CollaborationRequestModal
+                  targetResearcher={{
+                    id: researcher.id,
+                    name: `${researcher.fname} ${researcher.lname}`,
+                    role: researcher.role,
+                    position: researcher.currentPosition,
+                    universityName: researcher.department.university.universityName,
+                    departmentName: researcher.department.departmentName
+                  }}
+                  currentUserId={user?.id}
+                  currentUserName={user?.name}
+                  availableRequesters={otherResearchers.map((r) => ({
+                    id: r.id,
+                    name: `${r.fname} ${r.lname}`,
+                    role: r.role
+                  }))}
+                />
               </div>
             </div>
 
