@@ -1,10 +1,12 @@
-﻿import { getProjectById } from '@/services/project.service'
+import { getProjectById } from '@/services/project.service'
 import { getCurrentUser } from '@/lib/auth'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Navbar } from '@/components/layout/Navbar'
 import { Badge } from '@/components/ui/Badge'
 import { ProjectGrantSection } from '@/components/projects/ProjectGrantSection'
 import { ProjectPublicationsSection } from '@/components/publications/ProjectPublicationsSection'
+import { ProjectApplicationModal } from '@/components/projects/ProjectApplicationModal'
+import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -27,7 +29,16 @@ export default async function ProjectDetailPage({
 }) {
   const user = await getCurrentUser()
   const resolvedParams = await params
-  const project = await getProjectById(resolvedParams.id)
+  const [project, otherResearchers, industries] = await Promise.all([
+    getProjectById(resolvedParams.id),
+    prisma.researcher.findMany({
+      take: 6,
+      select: { id: true, fname: true, lname: true, role: true }
+    }),
+    prisma.industry.findMany({
+      select: { id: true, name: true, industryType: true }
+    })
+  ])
 
   if (!project) {
     notFound()
@@ -43,25 +54,49 @@ export default async function ProjectDetailPage({
         <main className="p-8 max-w-7xl mx-auto w-full space-y-6">
           {/* Header Banner */}
           <div className="bg-white border border-slate-200 rounded-xl p-8 shadow-xs space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant={project.projectStatus === 'Active' ? 'success' : 'info'}>
-                {project.projectStatus}
-              </Badge>
-              {project.grantNumber && (
-                <span className="text-xs font-mono bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded border border-slate-200">
-                  {project.grantNumber}
-                </span>
-              )}
-              {project.fundingAgency && (
-                <span className="text-xs font-medium text-slate-500">
-                  Funded by {project.fundingAgency.name}
-                </span>
-              )}
-            </div>
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+              <div className="space-y-3 max-w-3xl">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={project.projectStatus === 'Active' ? 'success' : 'info'}>
+                    {project.projectStatus}
+                  </Badge>
+                  {project.grantNumber && (
+                    <span className="text-xs font-mono bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded border border-slate-200">
+                      {project.grantNumber}
+                    </span>
+                  )}
+                  {project.fundingAgency && (
+                    <span className="text-xs font-medium text-slate-500">
+                      Funded by {project.fundingAgency.name}
+                    </span>
+                  )}
+                </div>
 
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              {project.projectTitle}
-            </h1>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  {project.projectTitle}
+                </h1>
+              </div>
+
+              {/* Action Buttons: Apply to Join & Corporate Sponsorship */}
+              <div className="shrink-0">
+                <ProjectApplicationModal
+                  projectId={project.id}
+                  projectTitle={project.projectTitle}
+                  leadProfessorName={`${project.leadProfessor.fname} ${project.leadProfessor.lname}`}
+                  currentUserId={user?.id}
+                  availableApplicants={otherResearchers.map((r) => ({
+                    id: r.id,
+                    name: `${r.fname} ${r.lname}`,
+                    role: r.role
+                  }))}
+                  availableIndustries={industries.map((ind) => ({
+                    id: ind.id,
+                    name: ind.name,
+                    industryType: ind.industryType
+                  }))}
+                />
+              </div>
+            </div>
 
             <div className="flex flex-wrap items-center gap-6 text-xs text-slate-600 border-t border-slate-100 pt-4">
               <div>
@@ -155,10 +190,12 @@ export default async function ProjectDetailPage({
             {/* Team & Members */}
             <div className="space-y-6">
               <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Users className="w-5 h-5 text-blue-600" />
-                  Project Team Members ({project.members.length})
-                </h2>
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-blue-600" />
+                    Project Team Members ({project.members.length})
+                  </h2>
+                </div>
 
                 <div className="space-y-3">
                   {project.members.map((m) => (
@@ -170,9 +207,17 @@ export default async function ProjectDetailPage({
                         >
                           {m.researcher.fname} {m.researcher.lname}
                         </Link>
-                        <span className="text-[10px] text-slate-500 block">{m.role}</span>
+                        {m.role.startsWith('Pending:') ? (
+                          <span className="text-[10px] text-amber-600 font-bold block">
+                            {m.role} (Review Pending)
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-500 block">{m.role}</span>
+                        )}
                       </div>
-                      <Badge variant="outline">{m.researcher.role}</Badge>
+                      <Badge variant={m.role.startsWith('Pending:') ? 'warning' : 'outline'}>
+                        {m.role.startsWith('Pending:') ? 'Applicant' : m.researcher.role}
+                      </Badge>
                     </div>
                   ))}
                 </div>
