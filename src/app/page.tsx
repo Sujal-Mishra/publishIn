@@ -2,13 +2,28 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { Search, Compass, Users, FolderGit2, FlaskConical, ArrowRight, ShieldCheck, DatabaseZap } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export default async function LandingPage() {
-  const [researcherCount, universityCount, projectCount, labCount] = await Promise.all([
+  let researcherCount = 0
+  let universityCount = 0
+  let projectCount = 0
+  let labCount = 0
+
+  try {
+    const [rc, uc, pc, lc] = await Promise.all([
     prisma.researcher.count(),
     prisma.university.count(),
     prisma.researchProject.count(),
     prisma.laboratory.count()
-  ])
+    ])
+    researcherCount = rc
+    universityCount = uc
+    projectCount = pc
+    labCount = lc
+  } catch (err) {
+    console.error('Landing page stats query error:', err)
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
